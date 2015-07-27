@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Socket.io Chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      #received { position: absolute; bottom: 50px; border: 5px solid green; }
+      /*#typing { position: absolute; bottom: 50px; left: 100px; border: 5px solid blue; }*/
+      form[name='chat'] { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form[name='chat'] input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form[name='chat'] button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+    </style>
+  </head>
+  <body>
+    <form id='usernameForm' name='username' action=''>
+      <input type='text' id='username' placeholder='Username' autofocus>
+      <!-- <button type='button'>Use this name</button> -->
+    </form>
+    <ul id='messages'></ul>
+    <div id='received'></div>
+    <!-- <div id='typing'></div> -->
+    <form id='chatForm' name='chat' action=''>
+      <input id='m' autocomplete='off' disabled>
+      <button disabled> Send </button>
+    </form>
+
+    <script src='/socket.io/socket.io.js'></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script>
+      var socket = io();
+      var username = '';
+
+      $('form[name="chat"]').submit(function() {
+        var message = username + ':' + $('#m').val();
+        socket.emit('chat message', message, function(data) {
+          $('#received').text(data);
+        });
+        $('#messages').append($('<li>').text('ME: ' + $('#m').val()));
+        $('#m').val('');
+        return false;
+      });
+
+      $('form[name="username"]').submit(function(event) {
+        username = $('#username').val();
+        $('#usernameForm').css('display', 'none');
+        $('#m').attr('disabled', false);
+        $('#chatForm button').attr('disabled', false);
+        $('#chatForm').css('display', 'block');
+        socket.emit('joined', username);
+        $('#m').focus();
+        return false;
+      });
+
+      $('#chatForm').on('change', function() {
+        socket.emit('typing', username);
+      });
+
+      socket.on('chat message', function(msg) {
+        $('#messages').append($('<li>').text(msg));
+      });
+
+      // socket.on('typing', function(msg) {
+      //   $('.typing').text(msg);
+      // });
+
+      socket.on('user connected', function() {
+        $('#messages').append($('<li>').text('A new person is viewing the chat'));
+      });
+
+      socket.on('disconnected', function(msg) {
+        $('#messages').append($('<li>').text(msg));
+      });
+    </script>
+  </body>
+</html>
